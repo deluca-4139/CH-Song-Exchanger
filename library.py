@@ -10,7 +10,11 @@ def parseINI(f=None):
     try:
         iniReader.read(f, encoding='utf-8-sig') # account for BOM
     except UnicodeDecodeError:
-        iniReader.read(f, encoding="utf-16") # if UTF-8 fails, use 16
+        try:
+            iniReader.read(f, encoding="utf-16") # if UTF-8 fails, use 16
+        except UnicodeDecodeError:
+            print("Error parsing {}; I was unable to decode using UTF-8 or 16. Maybe corrupted?".format(f))
+            return None
     except configparser.ParsingError:
         print("Error parsing {}; maybe there's a blank key?".format(f))
         return None
@@ -30,7 +34,7 @@ def parseINI(f=None):
 def parse_library(path):
     songs_found = 0
     songs = {}
-    for root, dirs, files, in os.walk(path):
+    for root, dirs, files in os.walk(path):
         for name in files:
             song_entry = root.split("\\")[-1]
             if name == "song.ini":
@@ -45,3 +49,33 @@ def parse_library(path):
 
     print("Found {} total songs.".format(songs_found))
     return songs
+
+def compare_libs(lib1, lib2):
+    songs_in_common = []
+    in1not2 = []
+    in2not1 = []
+
+    for song in lib1:
+        if song in lib2:
+            song_identical = True
+            # Check each .ini field to confirm
+            # song versions are the same.
+            for item in lib1[song]:
+                try:
+                    if lib1[song][item] != lib2[song][item]:
+                        song_identical = False
+                except KeyError:
+                    print("Key error when searching for {0} and {1}.".format(song, item))
+                    song_identical = False # TODO: figure out a more elegant solution to this
+            if song_identical:
+                songs_in_common.append(song)
+            else:
+                print("Songs not identical.") # TODO: complete
+        else:
+            in1not2.append(song)
+
+    for song in lib2:
+        if song not in songs_in_common:
+            in2not1.append(song)
+
+    return (songs_in_common, in1not2, in2not1)

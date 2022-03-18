@@ -3,6 +3,8 @@ from twisted.internet import reactor
 from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 
 import os
+import sys
+import json
 
 import library
 
@@ -30,6 +32,18 @@ if os.path.exists("compare_lib.json"):
     print("Pre-existing compare_lib.json found. Removing...")
     os.remove("compare_lib.json")
 
-point = TCP4ClientEndpoint(reactor, "localhost", 8420)
+point = TCP4ClientEndpoint(reactor, sys.argv[1], 8420)
 d = connectProtocol(point, TestServ())
 reactor.run()
+
+############################################################
+
+loc_lib = library.parse_library(sys.argv[2])
+ext_lib = json.loads(open("compare_lib.json", "r", encoding="utf-8").read())
+compare = library.compare_libs(loc_lib, ext_lib)
+
+if (len(compare[1]) == 0) and (len(compare[2]) == 0):
+    print("Your libraries are completely identical!")
+else:
+    print("There are a total of {} songs in common between the two libraries.".format(len(compare[1])))
+    print("There are {0} songs in your library that are not in theirs, and {1} songs in their library that are not in yours.".format(len(compare[1]), len(compare[2])))

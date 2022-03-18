@@ -1,5 +1,6 @@
 import os
 import configparser
+import hashlib
 
 def parseINI(f=None):
     # Strict might end up causing problems in the future, but
@@ -31,7 +32,8 @@ def parseINI(f=None):
         songDict[entry] = iniReader[items[1]][entry]
     return songDict
 
-def parse_library(path):
+# TODO: allow for both Unix and Win paths
+def parse_library_ini(path):
     songs_found = 0
     songs = {}
     for root, dirs, files in os.walk(path):
@@ -50,7 +52,24 @@ def parse_library(path):
     print("Found {} total songs.".format(songs_found))
     return songs
 
-def compare_libs(lib1, lib2):
+# TODO: allow for both Unix and Win paths
+def parse_library_hash(path):
+    songs_found = 0
+    songs = {}
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            song_entry = root.split("\\")[-1]
+            if name == "notes.chart" or name == "notes.mid":
+                chart_file = open((root + "\\" + name), "rb").read()
+                chart_hash = hashlib.md5(chart_file).hexdigest()
+                if chart_hash in songs:
+                    print("Duplicate hash found for {}.".format(song_entry))
+                songs[chart_hash] = song_entry
+                songs_found += 1
+    print("Found {} total songs.".format(songs_found))
+    return songs
+
+def compare_ini_libs(lib1, lib2):
     songs_in_common = []
     in1not2 = []
     in2not1 = []
@@ -77,5 +96,21 @@ def compare_libs(lib1, lib2):
     for song in lib2:
         if song not in songs_in_common:
             in2not1.append(song)
+
+    return (songs_in_common, in1not2, in2not1)
+
+def compare_hash_libs(lib1, lib2):
+    songs_in_common = []
+    in1not2 = {}
+    in2not1 = {}
+
+    for song in lib1:
+        if song in lib2:
+            songs_in_common.append(song)
+        else:
+            in1not2[song] = lib1[song]
+    for song in lib2:
+        if song not in lib1:
+            in2not1[song] = lib2[song]
 
     return (songs_in_common, in1not2, in2not1)

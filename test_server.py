@@ -28,9 +28,18 @@ class TestFactory(Factory):
 
 ############################################################
 
-if not os.path.exists("library.json"):
+parseLib = True
+
+if os.path.exists("library.json"):
+    answer = input("library.json already exists. Re-parse? (Y/N)")
+    if answer.lower() == "n":
+        parseLib = False
+    elif answer.lower() == "y":
+        print("Removing existing library...")
+        os.remove("library.json")
+if parseLib:
     print("Parsing song library...")
-    songs = library.parse_library(sys.argv[1])
+    songs = library.parse_library_hash(sys.argv[1])
 
     json_file = open("library.json", "w")
     json.dump(songs, json_file)
@@ -39,7 +48,7 @@ if not os.path.exists("library.json"):
     print("Parsing complete.")
     print()
 else:
-    print("library.json already exists. Continuing with pre-existing parsed library...")
+    print("Continuing with pre-existing parsed library...")
     print()
 
 print("Opening TCP server...")

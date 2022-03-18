@@ -38,9 +38,9 @@ reactor.run()
 
 ############################################################
 
-loc_lib = library.parse_library(sys.argv[2])
+loc_lib = library.parse_library_hash(sys.argv[2])
 ext_lib = json.loads(open("compare_lib.json", "r", encoding="utf-8").read())
-compare = library.compare_libs(loc_lib, ext_lib)
+compare = library.compare_hash_libs(loc_lib, ext_lib)
 
 if (len(compare[1]) == 0) and (len(compare[2]) == 0):
     print("Your libraries are completely identical!")

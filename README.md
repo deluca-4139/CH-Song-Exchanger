@@ -3,3 +3,4 @@
 ### Dependencies: 
 * `twisted`
 * `json`
+* `configparser`

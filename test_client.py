@@ -45,5 +45,5 @@ compare = library.compare_hash_libs(loc_lib, ext_lib)
 if (len(compare[1]) == 0) and (len(compare[2]) == 0):
     print("Your libraries are completely identical!")
 else:
-    print("There are a total of {} songs in common between the two libraries.".format(len(compare[1])))
+    print("There are a total of {} songs in common between the two libraries.".format(len(compare[0])))
     print("There are {0} songs in your library that are not in theirs, and {1} songs in their library that are not in yours.".format(len(compare[1]), len(compare[2])))

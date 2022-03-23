@@ -1,6 +1,20 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.Qt import Qt
 import sys, json
+from time import sleep # TODO: remove
+
+import library
+
+class Worker(QtCore.QObject):
+    finished = QtCore.pyqtSignal()
+
+    def __init__(self, path):
+        super(QtCore.QObject, self).__init__()
+        self.library_path = path
+
+    def run(self):
+        parsed_library = library.parse_library_hash(self.library_path)
+        self.finished.emit()
 
 class Node:
     def __init__(self, d):
@@ -35,12 +49,29 @@ class Node:
                 self.children.append(newNode)
 
 
-class Form(QtWidgets.QDialog):
+class Window(QtWidgets.QMainWindow):
     def buttonPushed(self):
         print("Buttons that are selected:")
         for widget in self.buttons_list:
             if widget.checkState(0) == 2:
                 print(widget.text(0))
+
+    def parseButtonPushed(self):
+        print("Parsing given path...")
+        self.parse_status_text.setText("Parsing...")
+
+        self.thread = QtCore.QThread()
+        self.worker = Worker(self.library_path_box.text())
+        self.worker.moveToThread(self.thread)
+
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(lambda: print("Finished parsing!"))
+        self.worker.finished.connect(lambda: self.parse_status_text.setText("Finished!"))
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.thread.start()
 
     def createNode(self, item, parent):
         if not item.isLeaf():
@@ -57,16 +88,27 @@ class Form(QtWidgets.QDialog):
             self.buttons_list.append(childNode)
 
     def __init__(self, parent=None):
-        super(Form, self).__init__(parent)
+        super(Window, self).__init__(parent)
+        self.setWindowTitle("Song Exchanger")
+        self.setMinimumSize(800, 600)
+
+        self.library_path_box = QtWidgets.QLineEdit("Enter song library path here...")
+        self.parse_library_button = QtWidgets.QPushButton("Parse Library")
+        self.parse_library_button.clicked.connect(self.parseButtonPushed)
+        self.parse_status_text = QtWidgets.QLabel("Enter path and click parse.")
+        self.parse_status_text.setFixedSize(150, 20)
+
+        topLayout = QtWidgets.QHBoxLayout(self)
+        topLayout.addWidget(self.library_path_box)
+        topLayout.addWidget(self.parse_library_button)
+        topLayout.addWidget(self.parse_status_text)
 
         self.tree = QtWidgets.QTreeWidget()
-        self.headerItem = QtWidgets.QTreeWidgetItem()
-        self.item = QtWidgets.QTreeWidgetItem()
         self.button = QtWidgets.QPushButton("Click Me")
         self.button.clicked.connect(self.buttonPushed)
 
         self.root = Node("root")
-        ext_lib = json.loads(open("ext_lib.json", "r").read())
+        ext_lib = json.loads(open("library.json", "r").read()) # rename
         for key in ext_lib:
             self.root.insert(ext_lib[key])
 
@@ -75,13 +117,20 @@ class Form(QtWidgets.QDialog):
         for item in self.root.children:
             self.createNode(item, self.tree)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.tree)
-        layout.addWidget(self.button)
-        self.setLayout(layout)
+        treeLayout = QtWidgets.QVBoxLayout(self)
+        treeLayout.addWidget(self.tree)
+        treeLayout.addWidget(self.button)
+
+        mainLayout = QtWidgets.QVBoxLayout(self)
+        mainLayout.addLayout(topLayout)
+        mainLayout.addLayout(treeLayout)
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(mainLayout)
+        self.setCentralWidget(widget)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication([])
-    form = Form()
-    form.show()
+    window = Window()
+    window.show()
     sys.exit(app.exec())

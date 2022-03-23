@@ -3,4 +3,5 @@
 ### Dependencies: 
 * `twisted`
 * `json`
-* `configparser`
+* `configparser` *(deprecated)*
+* `PyQt5`

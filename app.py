@@ -27,7 +27,7 @@ class ServerWorker(QtCore.QObject):
         send_file = open("library.json", "rb").read()
         endpoint = TCP4ServerEndpoint(reactor, 8420)
         endpoint.listen(test_server.TestFactory(send_file))
-        reactor.run()
+        reactor.run(installSignalHandlers=False)
 
 class ClientWorker(QtCore.QObject):
     def __init__(self, i):
@@ -36,7 +36,7 @@ class ClientWorker(QtCore.QObject):
     def run(self):
         point = TCP4ClientEndpoint(reactor, self.ip, 8420)
         d = connectProtocol(point, test_client.TestServ())
-        reactor.run()
+        reactor.run(installSignalHandlers=False)
 
 class Node:
     def __init__(self, d):

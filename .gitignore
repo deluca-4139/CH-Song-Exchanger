@@ -1,7 +1,2 @@
-
-compare_lib.json
-library.json
 *.json
-__pycache__/library.cpython-310.pyc
-__pycache__/library.cpython-310.pyc
-__pycache__/library.cpython-310.pyc
+*.pyc

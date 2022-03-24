@@ -11,15 +11,16 @@ import library
 class TestServ(Protocol):
     def validateLibs(self, c):
         self.transport.write("{}\r\n\r\n".format(len(c[0])).encode("utf-8"))
-        local_lib = open("local_lib.json", "rb").read()
+        local_lib = open("library.json", "rb").read()
         self.transport.write(local_lib)
         self.transport.write("\r\n\r\n".encode("utf-8"))
 
     def compareLibs(self):
-        loc_lib = library.parse_library_hash(sys.argv[2])
-        lib_file = open("local_lib.json", "w")
-        json.dump(loc_lib, lib_file)
-        lib_file.close()
+        #loc_lib = library.parse_library_hash(sys.argv[2])
+        #lib_file = open("library.json", "w")
+        #json.dump(loc_lib, lib_file)
+        #lib_file.close()
+        loc_lib = json.loads(open("library.json", "r", encoding="utf-8").read())
 
         ext_lib = json.loads(open("compare_lib.json", "r", encoding="utf-8").read())
         compare = library.compare_hash_libs(loc_lib, ext_lib)
@@ -59,16 +60,17 @@ class TestServ(Protocol):
 
 ############################################################
 
-if os.path.exists("compare_lib.json"):
-    print("Pre-existing compare_lib.json found. Removing...")
-    os.remove("compare_lib.json")
+def main():
+    if os.path.exists("compare_lib.json"):
+        print("Pre-existing compare_lib.json found. Removing...")
+        os.remove("compare_lib.json")
 
-if os.path.exists("local_lib.json"):
-    print("Pre-existing local_lib.json found. Removing...")
-    os.remove("local_lib.json")
+    if os.path.exists("local_lib.json"):
+        print("Pre-existing local_lib.json found. Removing...")
+        os.remove("local_lib.json")
 
-point = TCP4ClientEndpoint(reactor, sys.argv[1], 8420)
-d = connectProtocol(point, TestServ())
-reactor.run()
+    point = TCP4ClientEndpoint(reactor, sys.argv[1], 8420)
+    d = connectProtocol(point, TestServ())
+    reactor.run()
 
 ############################################################

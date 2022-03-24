@@ -61,35 +61,36 @@ class TestFactory(Factory):
 
 ############################################################
 
-parseLib = True
+def main():
+    parseLib = True
 
-if os.path.exists("ext_lib.json"):
-    print("Pre-existing ext_lib.json found. Removing...")
-    os.remove("ext_lib.json")
+    if os.path.exists("ext_lib.json"):
+        print("Pre-existing ext_lib.json found. Removing...")
+        os.remove("ext_lib.json")
 
-if os.path.exists("library.json"):
-    answer = input("library.json already exists. Re-parse? (Y/N)")
-    if answer.lower() == "n":
-        parseLib = False
-    elif answer.lower() == "y":
-        print("Removing existing library...")
-        os.remove("library.json")
-if parseLib:
-    print("Parsing song library...")
-    songs = library.parse_library_hash(sys.argv[1])
+    if os.path.exists("library.json"):
+        answer = input("library.json already exists. Re-parse? (Y/N)")
+        if answer.lower() == "n":
+            parseLib = False
+        elif answer.lower() == "y":
+            print("Removing existing library...")
+            os.remove("library.json")
+    if parseLib:
+        print("Parsing song library...")
+        songs = library.parse_library_hash(sys.argv[1])
 
-    json_file = open("library.json", "w")
-    json.dump(songs, json_file)
-    json_file.close()
+        json_file = open("library.json", "w")
+        json.dump(songs, json_file)
+        json_file.close()
 
-    print("Parsing complete.")
-    print()
-else:
-    print("Continuing with pre-existing parsed library...")
-    print()
+        print("Parsing complete.")
+        print()
+    else:
+        print("Continuing with pre-existing parsed library...")
+        print()
 
-print("Opening TCP server...")
-send_file = open("library.json", "rb").read()
-endpoint = TCP4ServerEndpoint(reactor, 8420)
-endpoint.listen(TestFactory(send_file))
-reactor.run()
+    print("Opening TCP server...")
+    send_file = open("library.json", "rb").read()
+    endpoint = TCP4ServerEndpoint(reactor, 8420)
+    endpoint.listen(TestFactory(send_file))
+    reactor.run()

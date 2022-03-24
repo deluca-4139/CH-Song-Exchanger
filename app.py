@@ -194,6 +194,8 @@ class Window(QtWidgets.QMainWindow):
         self.library_path_box.setPlaceholderText("Enter song library path here...")
         self.parse_library_button = QtWidgets.QPushButton("Parse Library")
         self.parse_library_button.clicked.connect(self.parseButtonPushed)
+        self.parse_library_button.setEnabled(False)
+        self.library_path_box.textChanged.connect(lambda: self.parse_library_button.setEnabled(True) if (self.library_path_box.text() != "") else (self.parse_library_button.setEnabled(False)))
         self.parse_status_text = QtWidgets.QLabel("Enter path and click parse.")
         self.parse_status_text.setFixedSize(150, 20)
 

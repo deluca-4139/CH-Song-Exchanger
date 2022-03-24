@@ -99,7 +99,7 @@ class Window(QtWidgets.QMainWindow):
     def clientButtonPushed(self):
         canStart = True
         for c in self.ip_text_box.text():
-            if not c.isdigit() or c != ".":
+            if not c.isdigit() and c != ".":
                 canStart = False
 
         if self.ip_text_box.text() == "localhost":

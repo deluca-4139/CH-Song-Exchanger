@@ -23,19 +23,27 @@ class ParseWorker(QtCore.QObject):
         self.finished.emit()
 
 class ServerWorker(QtCore.QObject):
+    communicator = QtCore.pyqtSignal(str)
+
     def run(self):
         send_file = open("library.json", "rb").read()
         endpoint = TCP4ServerEndpoint(reactor, 8420)
-        endpoint.listen(test_server.TestFactory(send_file))
+        server_factory = test_server.TestFactory(send_file)
+        endpoint.listen(server_factory)
+        server_factory.emitter.signal.connect(lambda x: self.communicator.emit(x))
         reactor.run(installSignalHandlers=False)
 
 class ClientWorker(QtCore.QObject):
+    communicator = QtCore.pyqtSignal(str)
+
     def __init__(self, i):
         super(QtCore.QObject, self).__init__()
         self.ip = i
     def run(self):
         point = TCP4ClientEndpoint(reactor, self.ip, 8420)
-        d = connectProtocol(point, test_client.TestServ())
+        client = test_client.TestServ()
+        client.emitter.signal.connect(lambda x: self.communicator.emit(x))
+        d = connectProtocol(point, client)
         reactor.run(installSignalHandlers=False)
 
 class Node:
@@ -72,6 +80,36 @@ class Node:
 
 
 class Window(QtWidgets.QMainWindow):
+    def displaySongs(self):
+        loc_lib = json.loads(open("library.json", "r").read())
+        ext_lib = json.loads(open("ext_lib.json", "r").read())
+        compare = library.compare_hash_libs(loc_lib, ext_lib)
+        for key in compare[2]:
+            self.root.insert(compare[2][key])
+
+        for item in self.root.children:
+            self.createNode(item, self.tree)
+
+    def handleEmit(self, emit):
+        if emit == "connected-server":
+            self.status_message.setText("Connected to client.")
+        elif emit == "connected-client":
+            self.status_message.setText("Connected to server.")
+        elif emit == "data-received":
+            self.status_message.setText("Receiving data...")
+        elif emit == "comparing":
+            self.status_message.setText("Validating libraries...")
+        elif emit == "compare-success":
+            self.status_message.setText("Library validation successful!")
+            self.displaySongs()
+        elif emit == "compare-failure":
+            self.status_message.setText("Library validation unsuccessful.")
+        elif emit == "identical":
+            popup = QtWidgets.QMessageBox()
+            popup.setWindowTitle("Server Message")
+            popup.setText("You and the client have identical libraries!")
+            popup.exec()
+
     def buttonPushed(self):
         print("Buttons that are selected:")
         for widget in self.buttons_list:
@@ -89,10 +127,12 @@ class Window(QtWidgets.QMainWindow):
             print("Opening TCP server...")
             self.server_button.setEnabled(False)
             self.connect_button.setEnabled(False)
+            self.status_message.setText("Server idle.")
             self.server_thread = QtCore.QThread()
             self.server_worker = ServerWorker()
             self.server_worker.moveToThread(self.server_thread)
 
+            self.server_worker.communicator.connect(lambda x: self.handleEmit(x))
             self.server_thread.started.connect(self.server_worker.run)
             self.server_thread.start()
 
@@ -120,6 +160,7 @@ class Window(QtWidgets.QMainWindow):
                 self.client_worker = ClientWorker(self.ip_text_box.text())
                 self.client_worker.moveToThread(self.client_thread)
 
+                self.client_worker.communicator.connect(lambda x: self.handleEmit(x))
                 self.client_thread.started.connect(self.client_worker.run)
                 self.client_thread.start()
         else:
@@ -205,17 +246,8 @@ class Window(QtWidgets.QMainWindow):
         topLayout.addWidget(self.parse_status_text)
 
         self.tree = QtWidgets.QTreeWidget()
-
         self.root = Node("root")
-
-        #ext_lib = json.loads(open("library.json", "r").read())
-        #for key in ext_lib:
-        #    self.root.insert(ext_lib[key])
-
         self.buttons_list = []
-
-        for item in self.root.children:
-            self.createNode(item, self.tree)
 
         treeLayout = QtWidgets.QVBoxLayout(self)
         treeLayout.addWidget(self.tree)
@@ -228,11 +260,14 @@ class Window(QtWidgets.QMainWindow):
         self.ip_text_box.textChanged.connect(lambda: self.connect_button.setEnabled(True) if (self.ip_text_box.text() != "") else (self.connect_button.setEnabled(False)))
         self.server_button = QtWidgets.QPushButton("Start Server")
         self.server_button.clicked.connect(self.serverButtonPushed)
+        self.status_message = QtWidgets.QLabel("")
+        self.status_message.setFixedSize(150, 20)
         lowerLayout = QtWidgets.QHBoxLayout(self)
         lowerLayout.addWidget(self.ip_text_box)
         lowerLayout.addWidget(self.connect_button)
         lowerLayout.addWidget(self.server_button)
         lowerLayout.addWidget(self.connect_button)
+        lowerLayout.addWidget(self.status_message)
 
         mainLayout = QtWidgets.QVBoxLayout(self)
         mainLayout.addLayout(topLayout)

@@ -2,25 +2,37 @@ from twisted.internet.protocol import Factory, Protocol
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 
-import sys
-import json
-import os
+from PyQt5.QtCore import QObject, pyqtSignal
+
+import os, sys, json
 
 import library
 
+class Signaler(QObject):
+    signal = pyqtSignal(str)
+
+    def run(self, string):
+        self.signal.emit(string)
+
 class Test(Protocol):
     def compareLibs(self):
+        self.factory.emitter.run("comparing")
         print("Comparing libraries and validating data...")
         loc_lib = json.loads(open("library.json", "r", encoding='utf-8').read())
         ext_lib = json.loads(open("ext_lib.json", "r", encoding='utf-8').read())
         compare = library.compare_hash_libs(loc_lib, ext_lib)
 
+        if (len(compare[1]) == 0) and (len(compare[2]) == 0):
+            self.factory.emitter.run("identical")
         if len(compare[0]) == int(self.shared_songs):
             print("Success! I agree with the client that you share {} songs in common.".format(self.shared_songs))
+            self.factory.emitter.run("compare-success")
         else:
             print("Something went wrong; I calculated {} shared songs in common, while the client calculated {} songs.".format(len(compare[0]), self.shared_songs))
+            self.factory.emitter.run("compare-failure")
 
     def connectionMade(self):
+        self.factory.emitter.run("connected")
         print("Connection made")
         self.transport.write(self.factory.file_to_send)
         self.transport.write("\r\n\r\n".encode("utf-8"))
@@ -28,6 +40,7 @@ class Test(Protocol):
         #self.transport.loseConnection()
 
     def dataReceived(self, data):
+        self.factory.emitter.run("data-received")
         print("Data received")
         if self.state == "validating":
             index = 0
@@ -57,6 +70,7 @@ class TestFactory(Factory):
     protocol = Test
 
     def __init__(self, f):
+        self.emitter = Signaler()
         self.file_to_send = f
 
 ############################################################

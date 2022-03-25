@@ -27,6 +27,8 @@ class Test(Protocol):
         if len(compare[0]) == int(self.shared_songs):
             print("Success! I agree with the client that you share {} songs in common.".format(self.shared_songs))
             self.factory.emitter.run("compare-success")
+            self.transport.write("success\r\n\r\n".encode("utf-8"))
+            self.state = "wait-user-1" # TODO: edit depending on workflow
         else:
             print("Something went wrong; I calculated {} shared songs in common, while the client calculated {} songs.".format(len(compare[0]), self.shared_songs))
             self.factory.emitter.run("compare-failure")
@@ -64,6 +66,7 @@ class Test(Protocol):
                 ext_lib.close()
 
     def connectionLost(self, reason):
+        self.factory.emitter.run("terminated")
         print("Connection to client terminated.")
 
 class TestFactory(Factory):

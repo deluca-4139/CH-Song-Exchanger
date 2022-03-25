@@ -36,7 +36,6 @@ class TestServ(Protocol):
             self.emitter.run("identical")
             print("Your libraries are completely identical!")
         else:
-            self.emitter.run("compare-success") # TODO: will need to move this when server validates amount with client in future
             print("There are a total of {} songs in common between the two libraries.".format(len(compare[0])))
             print("There are {0} songs in your library that are not in theirs, and {1} songs in their library that are not in yours.".format(len(compare[1]), len(compare[2])))
 
@@ -47,6 +46,10 @@ class TestServ(Protocol):
         print("Connection to server established.")
         self.state = "downloading"
         #self.transport.loseConnection()
+
+    def connectionLost(self, reason):
+        self.emitter.run("terminated")
+        print("Connection to server terminated.")
 
     def dataReceived(self, data):
         print("Data received.")
@@ -66,7 +69,15 @@ class TestServ(Protocol):
                 save_file.write(data)
                 save_file.close()
         elif self.state == "validating":
-            print() # TODO: complete
+            if data.decode("utf-8") == "success\r\n\r\n":
+                self.emitter.run("compare-success")
+                print("Success! The server agrees with my assessment of our libraries.")
+                self.state = "wait-user-1" # TODO: edit depending on workflow
+            elif data.decode("utf-8") == "failure\r\n\r\n":
+                self.emitter.run("compare-failure")
+                print("The server's assessment of our libraries did not match my own.")
+                self.state = "compare-fail" # Might need to flesh out in the future
+
 
 ############################################################
 

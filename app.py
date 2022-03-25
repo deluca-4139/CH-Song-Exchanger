@@ -106,9 +106,11 @@ class Window(QtWidgets.QMainWindow):
             self.status_message.setText("Library validation unsuccessful.")
         elif emit == "identical":
             popup = QtWidgets.QMessageBox()
-            popup.setWindowTitle("Server Message")
-            popup.setText("You and the client have identical libraries!")
+            popup.setWindowTitle("Library Message")
+            popup.setText("You have identical libraries!")
             popup.exec()
+        elif emit == "terminated":
+            self.status_message.setText("Connection terminated.")
 
     def buttonPushed(self):
         print("Buttons that are selected:")
@@ -171,6 +173,15 @@ class Window(QtWidgets.QMainWindow):
 
     def parseButtonPushed(self):
         parseLib = True
+
+        if not os.path.exists(self.library_path_box.text()):
+            popup = QtWidgets.QMessageBox()
+            popup.setWindowTitle("Library Parse")
+            popup.setText("Invalid Path")
+            popup.setInformativeText("I was unable to find the path you specified. Please enter a valid path.")
+            popup.setIcon(QtWidgets.QMessageBox.Warning)
+            popup.exec()
+            return False
 
         if os.path.exists("library.json"):
             popup = QtWidgets.QMessageBox()

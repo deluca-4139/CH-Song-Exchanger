@@ -58,13 +58,13 @@ def parse_library_hash(path):
     songs = {}
     for root, dirs, files in os.walk(path):
         for name in files:
-            song_entry = root[(len(path)+1):] # Unix path might need edit? 
+            song_entry = root[(len(path)+1):] # Unix path might need edit?
             if name == "notes.chart" or name == "notes.mid":
                 chart_file = open((root + "\\" + name), "rb").read()
                 chart_hash = hashlib.md5(chart_file).hexdigest()
                 if chart_hash in songs:
                     print("Duplicate hash found for {}.".format(song_entry))
-                songs[chart_hash] = song_entry
+                songs[chart_hash] = root
                 songs_found += 1
     print("Found {} total songs.".format(songs_found))
     return songs

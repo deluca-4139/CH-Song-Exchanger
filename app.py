@@ -25,12 +25,15 @@ class ParseWorker(QtCore.QObject):
 class ServerWorker(QtCore.QObject):
     communicator = QtCore.pyqtSignal(str)
 
+    def sendDownload(self):
+        print("sendDownload in ServerWorker reached")
+
     def run(self):
         send_file = open("library.json", "rb").read()
         endpoint = TCP4ServerEndpoint(reactor, 8420)
-        server_factory = test_server.TestFactory(send_file)
-        endpoint.listen(server_factory)
-        server_factory.emitter.signal.connect(lambda x: self.communicator.emit(x))
+        self.server_factory = test_server.TestFactory(send_file)
+        endpoint.listen(self.server_factory)
+        self.server_factory.emitter.signal.connect(lambda x: self.communicator.emit(x))
         reactor.run(installSignalHandlers=False)
 
 class ClientWorker(QtCore.QObject):
@@ -39,12 +42,37 @@ class ClientWorker(QtCore.QObject):
     def __init__(self, i):
         super(QtCore.QObject, self).__init__()
         self.ip = i
+
+    def sendDownload(self, song_list):
+        reactor.callFromThread(test_client.TestServ.sendSongList, self.client, song_list)
+
     def run(self):
         point = TCP4ClientEndpoint(reactor, self.ip, 8420)
-        client = test_client.TestServ()
-        client.emitter.signal.connect(lambda x: self.communicator.emit(x))
-        d = connectProtocol(point, client)
+        self.client = test_client.TestServ()
+        self.client.emitter.signal.connect(lambda x: self.communicator.emit(x))
+        d = connectProtocol(point, self.client)
         reactor.run(installSignalHandlers=False)
+
+'''
+class DownloadWorker(QtCore.QObject):
+    communicator = QtCore.pyqtSignal(str)
+
+    def __init__(self, t, s):
+        super(QtCore.QObject, self).__init__()
+        self.type = t
+        self.songs_list = s
+        self.status = "waiting"
+
+    def setReady(self):
+        print("setReady in DownloadWorker reached")
+        self.status = "ready"
+
+    def run(self):
+        if self.type == "server":
+            while self.status == "waiting":
+                pass
+            print("Got past waiting block.")
+'''
 
 class Node:
     def __init__(self, d):
@@ -80,6 +108,8 @@ class Node:
 
 
 class Window(QtWidgets.QMainWindow):
+    download_signal = QtCore.pyqtSignal()
+
     def displaySongs(self):
         loc_lib = json.loads(open("library.json", "r").read())
         ext_lib = json.loads(open("ext_lib.json", "r").read())
@@ -89,6 +119,8 @@ class Window(QtWidgets.QMainWindow):
 
         for item in self.root.children:
             self.createNode(item, self.tree)
+
+        self.download_button.setEnabled(True)
 
     def handleEmit(self, emit):
         if emit == "connected-server":
@@ -111,12 +143,36 @@ class Window(QtWidgets.QMainWindow):
             popup.exec()
         elif emit == "terminated":
             self.status_message.setText("Connection terminated.")
+            self.download_button.setEnabled(False) # TODO: also turn on/off connect/start server buttons as needed
+        elif emit == "server-received-list":
+            self.hasReceivedFileList = True
+            self.download_signal.emit()
 
-    def buttonPushed(self):
-        print("Buttons that are selected:")
+    def downloadButtonPushed(self):
+        ext_lib = json.loads(open("ext_lib.json", "r").read())
+        self.button_paths = []
         for widget in self.buttons_list:
             if widget.checkState(0) == 2:
-                print(widget.text(0))
+                for key in ext_lib:
+                    if widget.text(0) in ext_lib[key]:
+                        self.button_paths.append(ext_lib[key])
+        self.download_button.setEnabled(False)
+        self.download_button.setText("Waiting...")
+        '''
+        self.download_thread = QtCore.QThread()
+        self.download_worker = DownloadWorker("server" if self.runningServer else "client", button_paths)
+        self.download_signal.connect(lambda: self.download_worker.setReady())
+        self.download_worker.moveToThread(self.download_thread)
+        self.download_thread.started.connect(self.download_worker.run)
+        self.download_thread.start()
+        '''
+        if self.runningClient:
+            #self.download_signal.connect(lambda: self.client_worker.sendDownload())
+            self.client_worker.sendDownload({"list": self.button_paths})
+        elif self.runningServer:
+            if self.hasReceivedFileList:
+                self.server_worker.sendDownload()
+            self.download_signal.connect(lambda: self.server_worker.sendDownload({"list": self.button_paths})) # Might need to be moved?
 
     def serverButtonPushed(self):
         if not os.path.exists("library.json"):
@@ -137,6 +193,10 @@ class Window(QtWidgets.QMainWindow):
             self.server_worker.communicator.connect(lambda x: self.handleEmit(x))
             self.server_thread.started.connect(self.server_worker.run)
             self.server_thread.start()
+
+            #reactor.callFromThread(test_server.Test.test, "test", "test")
+
+            self.runningServer = True
 
     def clientButtonPushed(self):
         canStart = True
@@ -165,6 +225,8 @@ class Window(QtWidgets.QMainWindow):
                 self.client_worker.communicator.connect(lambda x: self.handleEmit(x))
                 self.client_thread.started.connect(self.client_worker.run)
                 self.client_thread.start()
+
+                self.runningClient = True
         else:
             popup = QtWidgets.QMessageBox()
             popup.setWindowTitle("Client Message")
@@ -234,6 +296,11 @@ class Window(QtWidgets.QMainWindow):
         self.setWindowTitle("Song Exchanger")
         self.setMinimumSize(800, 600)
 
+        self.runningServer = False
+        self.runningClient = False
+
+        self.hasReceivedFileList = False
+
         # These might need to be relocated?
         if os.path.exists("ext_lib.json"):
             print("Pre-existing ext_lib.json found. Removing...")
@@ -241,6 +308,9 @@ class Window(QtWidgets.QMainWindow):
         if os.path.exists("compare_lib.json"):
             print("Pre-existing compare_lib.json found. Removing...")
             os.remove("compare_lib.json")
+        if os.path.exists("song_list_dic.json"):
+            print("Pre-existing song_list_dic.json found. Removing...")
+            os.remove("song_list_dic.json")
 
         self.library_path_box = QtWidgets.QLineEdit()
         self.library_path_box.setPlaceholderText("Enter song library path here...")
@@ -263,6 +333,12 @@ class Window(QtWidgets.QMainWindow):
         treeLayout = QtWidgets.QVBoxLayout(self)
         treeLayout.addWidget(self.tree)
 
+        self.download_button = QtWidgets.QPushButton("Download")
+        self.download_button.clicked.connect(self.downloadButtonPushed)
+        self.download_button.setEnabled(False)
+        middleLayout = QtWidgets.QHBoxLayout(self)
+        middleLayout.addWidget(self.download_button)
+
         self.ip_text_box = QtWidgets.QLineEdit()
         self.ip_text_box.setPlaceholderText("Enter IP here...")
         self.connect_button = QtWidgets.QPushButton("Connect")
@@ -283,6 +359,7 @@ class Window(QtWidgets.QMainWindow):
         mainLayout = QtWidgets.QVBoxLayout(self)
         mainLayout.addLayout(topLayout)
         mainLayout.addLayout(treeLayout)
+        mainLayout.addLayout(middleLayout)
         mainLayout.addLayout(lowerLayout)
 
         widget = QtWidgets.QWidget()

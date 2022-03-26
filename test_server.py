@@ -15,6 +15,14 @@ class Signaler(QObject):
         self.signal.emit(string)
 
 class Test(Protocol):
+    def sendSongs(self):
+        songs_list = json.loads(open("song_list_dic.json", "r", encoding="utf-8").read())
+        print("Song list I got from the client:")
+        print(songs_list["list"])
+
+    def sendSongList(self, song_list):
+        print(song_list)
+
     def compareLibs(self):
         self.factory.emitter.run("comparing")
         print("Comparing libraries and validating data...")
@@ -64,6 +72,20 @@ class Test(Protocol):
                 ext_lib = open("ext_lib.json", "ab")
                 ext_lib.write(data)
                 ext_lib.close()
+        elif self.state == "wait-user-1":
+            if data.decode("utf-8")[-4:] == '\r\n\r\n':
+                song_list_dic = open("song_list_dic.json", "a")
+                song_list_dic.write(data.decode("utf-8")[:-4])
+                song_list_dic.close()
+                #self.state = "" # TODO: change
+                #self.factory.emitter.run("")
+                self.sendSongs()
+            else:
+                song_list_dic = open("song_list_dic.json", "ab")
+                song_list_dic.write(data)
+                song_list_dic.close()
+        elif self.state == "receiving-list":
+            self.factory.emitter.run("server-received-list")
 
     def connectionLost(self, reason):
         self.factory.emitter.run("terminated")

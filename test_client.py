@@ -18,6 +18,9 @@ class TestServ(Protocol):
     def __init__(self):
         self.emitter = Signaler()
 
+    def sendSongList(self, song_list):
+        self.transport.write("{}\r\n\r\n".format(json.dumps(song_list)).encode("utf-8"))
+
     def validateLibs(self, c):
         self.transport.write("{}\r\n\r\n".format(len(c[0])).encode("utf-8"))
         local_lib = open("library.json", "rb").read()

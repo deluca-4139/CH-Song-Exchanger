@@ -1,7 +1,8 @@
 # Clone Hero Song Exchanger
 
-### Dependencies: 
+### Dependencies:
 * `twisted`
 * `json`
 * `configparser` *(deprecated)*
 * `PyQt5`
+* `py7zr`

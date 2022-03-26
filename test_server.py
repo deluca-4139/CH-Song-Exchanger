@@ -4,7 +4,7 @@ from twisted.internet import reactor
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-import os, sys, json
+import os, sys, json, py7zr
 
 import library
 
@@ -17,11 +17,19 @@ class Signaler(QObject):
 class Test(Protocol):
     def sendSongs(self):
         songs_list = json.loads(open("song_list_dic.json", "r", encoding="utf-8").read())
-        print("Song list I got from the client:")
         print(songs_list["list"])
 
-    def sendSongList(self, song_list):
-        print(song_list)
+        with py7zr.SevenZipFile("send_songs.7z", "w") as archive:
+            for song_path in songs_list["list"]:
+                index = len(song_path) - 1
+                while song_path[index] != "\\": # TODO: allow for Unix paths
+                    index -= 1
+                archive.writeall(song_path, song_path[index+1:])
+
+        send_file = open("send_songs.7z", "rb")
+        self.transport.write(send_file)
+        self.transport.write("\r\n\r\n".encode("utf-8"))
+        self.state = "receiving-songs"
 
     def compareLibs(self):
         self.factory.emitter.run("comparing")
@@ -78,14 +86,12 @@ class Test(Protocol):
                 song_list_dic.write(data.decode("utf-8")[:-4])
                 song_list_dic.close()
                 #self.state = "" # TODO: change
-                #self.factory.emitter.run("")
+                self.factory.emitter.run("server-received-list")
                 self.sendSongs()
             else:
                 song_list_dic = open("song_list_dic.json", "ab")
                 song_list_dic.write(data)
                 song_list_dic.close()
-        elif self.state == "receiving-list":
-            self.factory.emitter.run("server-received-list")
 
     def connectionLost(self, reason):
         self.factory.emitter.run("terminated")

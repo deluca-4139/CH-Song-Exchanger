@@ -4,7 +4,7 @@ from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-import os, sys, json
+import os, sys, json, py7zr
 
 import library
 
@@ -20,6 +20,10 @@ class TestServ(Protocol):
 
     def sendSongList(self, song_list):
         self.transport.write("{}\r\n\r\n".format(json.dumps(song_list)).encode("utf-8"))
+        self.state = "receiving-songs"
+
+    def sendSongs(self):
+        print("Reached client.sendSongs().")
 
     def validateLibs(self, c):
         self.transport.write("{}\r\n\r\n".format(len(c[0])).encode("utf-8"))
@@ -80,6 +84,18 @@ class TestServ(Protocol):
                 self.emitter.run("compare-failure")
                 print("The server's assessment of our libraries did not match my own.")
                 self.state = "compare-fail" # Might need to flesh out in the future
+        elif self.state == "receiving-songs":
+            if data.decode('utf-8')[-4:] == '\r\n\r\n':
+                print("End of file received.")
+                save_file = open("receive_songs.7z", "a")
+                save_file.write(data.decode('utf-8')[:-4])
+                save_file.close()
+                self.state = "sending-songs" # ?
+                self.sendSongs()
+            else:
+                save_file = open("receive_songs.7z", "ab")
+                save_file.write(data)
+                save_file.close()
 
 
 ############################################################

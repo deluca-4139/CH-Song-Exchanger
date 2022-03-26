@@ -25,6 +25,7 @@ class ParseWorker(QtCore.QObject):
 class ServerWorker(QtCore.QObject):
     communicator = QtCore.pyqtSignal(str)
 
+    # Maybe unnecessary?
     def sendDownload(self):
         print("sendDownload in ServerWorker reached")
 
@@ -311,6 +312,12 @@ class Window(QtWidgets.QMainWindow):
         if os.path.exists("song_list_dic.json"):
             print("Pre-existing song_list_dic.json found. Removing...")
             os.remove("song_list_dic.json")
+        if os.path.exists("send_songs.7z"):
+            print("Pre-existing send_songs.7z found. Removing...")
+            os.remove("send_songs.7z")
+        if os.path.exists("receive_songs.7z"):
+            print("Pre-existing receive_songs.7z found. Removing...")
+            os.remove("receive_songs.7z")
 
         self.library_path_box = QtWidgets.QLineEdit()
         self.library_path_box.setPlaceholderText("Enter song library path here...")

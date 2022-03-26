@@ -19,6 +19,7 @@ class Test(Protocol):
         songs_list = json.loads(open("song_list_dic.json", "r", encoding="utf-8").read())
         print(songs_list["list"])
 
+        print("Creating archive...")
         with py7zr.SevenZipFile("send_songs.7z", "w") as archive:
             for song_path in songs_list["list"]:
                 index = len(song_path) - 1
@@ -26,7 +27,7 @@ class Test(Protocol):
                     index -= 1
                 archive.writeall(song_path, song_path[index+1:])
 
-        send_file = open("send_songs.7z", "rb")
+        send_file = open("send_songs.7z", "rb").read()
         self.transport.write(send_file)
         self.transport.write("\r\n\r\n".encode("utf-8"))
         self.state = "receiving-songs"
@@ -66,9 +67,16 @@ class Test(Protocol):
                 index += 1
             self.shared_songs = data.decode('utf-8')[0:index]
             ext_lib = open("ext_lib.json", "a")
-            ext_lib.write(data.decode('utf-8')[(index+4):])
-            ext_lib.close()
-            self.state = "receiving"
+            if data.decode('utf-8')[-4:] == '\r\n\r\n':
+                ext_lib = open("ext_lib.json", "a")
+                ext_lib.write(data.decode('utf-8')[index+4:-4])
+                ext_lib.close()
+                self.state = "comparing"
+                self.compareLibs()
+            else:
+                ext_lib.write(data.decode('utf-8')[(index+4):])
+                ext_lib.close()
+                self.state = "receiving"
         elif self.state == "receiving":
             if data.decode('utf-8')[-4:] == '\r\n\r\n':
                 ext_lib = open("ext_lib.json", "a")

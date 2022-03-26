@@ -20,6 +20,7 @@ class TestServ(Protocol):
 
     def sendSongList(self, song_list):
         self.transport.write("{}\r\n\r\n".format(json.dumps(song_list)).encode("utf-8"))
+        self.finishedReceiving = False
         self.state = "receiving-songs"
 
     def sendSongs(self):
@@ -85,17 +86,20 @@ class TestServ(Protocol):
                 print("The server's assessment of our libraries did not match my own.")
                 self.state = "compare-fail" # Might need to flesh out in the future
         elif self.state == "receiving-songs":
-            if data.decode('utf-8')[-4:] == '\r\n\r\n':
-                print("End of file received.")
-                save_file = open("receive_songs.7z", "a")
-                save_file.write(data.decode('utf-8')[:-4])
-                save_file.close()
-                self.state = "sending-songs" # ?
-                self.sendSongs()
+            save_file = open("receive_songs.7z", "ab")
+            save_file.write(data)
+            save_file.close()
+            try:
+                test_file = py7zr.SevenZipFile("receive_songs.7z", "r")
+                test_file.close()
+            except py7zr.exceptions.Bad7zFile:
+                print("Receiving song archive...")
             else:
-                save_file = open("receive_songs.7z", "ab")
-                save_file.write(data)
-                save_file.close()
+                self.finishedReceiving = True
+            finally:
+                if self.finishedReceiving:
+                    self.sendSongs()
+
 
 
 ############################################################

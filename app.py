@@ -111,6 +111,7 @@ class Node:
 class Window(QtWidgets.QMainWindow):
     download_signal = QtCore.pyqtSignal()
 
+    # TODO: refactor to handle full song paths 
     def displaySongs(self):
         loc_lib = json.loads(open("library.json", "r").read())
         ext_lib = json.loads(open("ext_lib.json", "r").read())
@@ -170,10 +171,12 @@ class Window(QtWidgets.QMainWindow):
         if self.runningClient:
             #self.download_signal.connect(lambda: self.client_worker.sendDownload())
             self.client_worker.sendDownload({"list": self.button_paths})
-        elif self.runningServer:
-            if self.hasReceivedFileList:
-                self.server_worker.sendDownload()
-            self.download_signal.connect(lambda: self.server_worker.sendDownload({"list": self.button_paths})) # Might need to be moved?
+
+        # TODO: fix
+        #elif self.runningServer:
+            #if self.hasReceivedFileList:
+                #self.server_worker.sendDownload()
+            #self.download_signal.connect(lambda: self.server_worker.sendDownload({"list": self.button_paths})) # Might need to be moved?
 
     def serverButtonPushed(self):
         if not os.path.exists("library.json"):

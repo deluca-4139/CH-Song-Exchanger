@@ -3,8 +3,11 @@
 Everyone who's played Clone Hero Online knows this struggle:
 
 > A: "Hey, do you have {insert song here}? It's one of my favorites."
+> 
 > B: "Oh shoot, I don't think I have that one..."
+> 
 > A: "Darn... how about {insert other song here}?"
+> 
 > B: "Nope, not that one..."
 
 With the way that CH Online works, you must both have access to a song's chart if you want to play it; but trying to have your friend download a bunch of songs that you want to play can be annoying, and take up a lot of time trying to figure out where you got all of those charts from. That's where **Clone Hero Song Exchanger** comes in!

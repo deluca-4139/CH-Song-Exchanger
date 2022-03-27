@@ -25,9 +25,8 @@ class ParseWorker(QtCore.QObject):
 class ServerWorker(QtCore.QObject):
     communicator = QtCore.pyqtSignal(str)
 
-    # Maybe unnecessary?
-    def sendDownload(self):
-        print("sendDownload in ServerWorker reached")
+    def sendDownload(self, song_list):
+        reactor.callFromThread(test_server.Test.sendSongList, self.server_factory.connectedProtocol, song_list)
 
     def run(self):
         send_file = open("library.json", "rb").read()
@@ -53,27 +52,6 @@ class ClientWorker(QtCore.QObject):
         self.client.emitter.signal.connect(lambda x: self.communicator.emit(x))
         d = connectProtocol(point, self.client)
         reactor.run(installSignalHandlers=False)
-
-'''
-class DownloadWorker(QtCore.QObject):
-    communicator = QtCore.pyqtSignal(str)
-
-    def __init__(self, t, s):
-        super(QtCore.QObject, self).__init__()
-        self.type = t
-        self.songs_list = s
-        self.status = "waiting"
-
-    def setReady(self):
-        print("setReady in DownloadWorker reached")
-        self.status = "ready"
-
-    def run(self):
-        if self.type == "server":
-            while self.status == "waiting":
-                pass
-            print("Got past waiting block.")
-'''
 
 class Node:
     def __init__(self, d):
@@ -111,7 +89,6 @@ class Node:
 class Window(QtWidgets.QMainWindow):
     download_signal = QtCore.pyqtSignal()
 
-    # TODO: refactor to handle full song paths
     def displaySongs(self):
         loc_lib = json.loads(open("library.json", "r").read())
         ext_lib = json.loads(open("ext_lib.json", "r").read())
@@ -152,6 +129,12 @@ class Window(QtWidgets.QMainWindow):
         elif emit == "server-received-list":
             self.hasReceivedFileList = True
             self.download_signal.emit()
+        elif emit == "extraction-complete":
+            popup = QtWidgets.QMessageBox()
+            popup.setWindowTitle("{} Message".format("Server" if self.runningServer else "Client"))
+            popup.setText("Download Complete!")
+            popup.setInformativeText("You may now scan your library in Clone Hero. Rock on!")
+            popup.exec()
 
     def downloadButtonPushed(self):
         ext_lib = json.loads(open("ext_lib.json", "r").read())
@@ -163,23 +146,13 @@ class Window(QtWidgets.QMainWindow):
                         self.button_paths.append(ext_lib[key])
         self.download_button.setEnabled(False)
         self.download_button.setText("Waiting...")
-        '''
-        self.download_thread = QtCore.QThread()
-        self.download_worker = DownloadWorker("server" if self.runningServer else "client", button_paths)
-        self.download_signal.connect(lambda: self.download_worker.setReady())
-        self.download_worker.moveToThread(self.download_thread)
-        self.download_thread.started.connect(self.download_worker.run)
-        self.download_thread.start()
-        '''
-        if self.runningClient:
-            #self.download_signal.connect(lambda: self.client_worker.sendDownload())
-            self.client_worker.sendDownload({"list": self.button_paths})
 
-        # TODO: fix
-        #elif self.runningServer:
-            #if self.hasReceivedFileList:
-                #self.server_worker.sendDownload()
-            #self.download_signal.connect(lambda: self.server_worker.sendDownload({"list": self.button_paths})) # Might need to be moved?
+        if self.runningClient:
+            self.client_worker.sendDownload({"list": self.button_paths})
+        elif self.runningServer:
+            if self.hasReceivedFileList:
+                self.server_worker.sendDownload({"list": self.button_paths})
+            self.download_signal.connect(lambda: self.server_worker.sendDownload({"list": self.button_paths})) # Might need to be moved?
 
     def serverButtonPushed(self):
         if not os.path.exists("library.json"):
@@ -200,8 +173,6 @@ class Window(QtWidgets.QMainWindow):
             self.server_worker.communicator.connect(lambda x: self.handleEmit(x))
             self.server_thread.started.connect(self.server_worker.run)
             self.server_thread.start()
-
-            #reactor.callFromThread(test_server.Test.test, "test", "test")
 
             self.runningServer = True
 
@@ -308,7 +279,6 @@ class Window(QtWidgets.QMainWindow):
 
         self.hasReceivedFileList = False
 
-        # These might need to be relocated?
         if os.path.exists("ext_lib.json"):
             print("Pre-existing ext_lib.json found. Removing...")
             os.remove("ext_lib.json")

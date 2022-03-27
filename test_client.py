@@ -18,13 +18,40 @@ class TestServ(Protocol):
     def __init__(self):
         self.emitter = Signaler()
 
+    def unzipLibrary(self):
+        lib = json.loads(open("library.json", "r").read())
+        library_path = library.find_library_path([lib[key] for key in lib])
+        if not os.path.isdir(library_path + "\\CH-X"): # TODO: allow for Unix paths
+            os.mkdir(library_path + "\\CH-X")
+        with py7zr.SevenZipFile("receive_songs.7z", "r") as archive:
+            archive.extractall(library_path + "\\CH-X")
+        os.remove("ext_lib.json")
+        os.remove("song_list_dic.json")
+        os.remove("send_songs.7z")
+        os.remove("receive_songs.7z")
+        print("Extraction complete.")
+        self.emitter.run("extraction-complete")
+
     def sendSongList(self, song_list):
         self.transport.write("{}\r\n\r\n".format(json.dumps(song_list)).encode("utf-8"))
         self.finishedReceiving = False
-        self.state = "receiving-songs"
+        self.state = "receiving-songs-list"
 
     def sendSongs(self):
-        print("Reached client.sendSongs().")
+        songs_list = json.loads(open("song_list_dic.json", "r", encoding="utf-8").read())
+
+        print("Creating archive...")
+        with py7zr.SevenZipFile("send_songs.7z", "w") as archive:
+            for song_path in songs_list["list"]:
+                index = len(song_path) - 1
+                while song_path[index] != "\\": # TODO: allow for Unix paths
+                    index -= 1
+                archive.writeall(song_path, song_path[index+1:])
+
+        send_file = open("send_songs.7z", "rb").read()
+        self.transport.write(send_file)
+        self.transport.write("\r\n\r\n".encode("utf-8"))
+        self.state = "receiving-songs"
 
     def validateLibs(self, c):
         self.transport.write("{}\r\n\r\n".format(len(c[0])).encode("utf-8"))
@@ -53,7 +80,6 @@ class TestServ(Protocol):
         self.emitter.run("connected-client")
         print("Connection to server established.")
         self.state = "downloading"
-        #self.transport.loseConnection()
 
     def connectionLost(self, reason):
         self.emitter.run("terminated")
@@ -70,8 +96,6 @@ class TestServ(Protocol):
                 save_file.close()
                 self.state = "comparing"
                 self.compareLibs()
-                #self.transport.loseConnection()
-                #reactor.stop() # Close server connection to move on
             else:
                 save_file = open("ext_lib.json", "ab")
                 save_file.write(data)
@@ -85,6 +109,18 @@ class TestServ(Protocol):
                 self.emitter.run("compare-failure")
                 print("The server's assessment of our libraries did not match my own.")
                 self.state = "compare-fail" # Might need to flesh out in the future
+        elif self.state == "receiving-songs-list":
+            if data.decode("utf-8")[-4:] == '\r\n\r\n':
+                song_list_dic = open("song_list_dic.json", "a")
+                song_list_dic.write(data.decode("utf-8")[:-4])
+                song_list_dic.close()
+                #self.state = "" # TODO: change
+                #self.factory.emitter.run("client-received-list")
+                self.sendSongs()
+            else:
+                song_list_dic = open("song_list_dic.json", "ab")
+                song_list_dic.write(data)
+                song_list_dic.close()
         elif self.state == "receiving-songs":
             save_file = open("receive_songs.7z", "ab")
             save_file.write(data)
@@ -98,7 +134,7 @@ class TestServ(Protocol):
                 self.finishedReceiving = True
             finally:
                 if self.finishedReceiving:
-                    self.sendSongs()
+                    self.unzipLibrary()
 
 
 

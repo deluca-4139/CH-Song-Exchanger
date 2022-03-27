@@ -15,9 +15,28 @@ class Signaler(QObject):
         self.signal.emit(string)
 
 class Test(Protocol):
+    def unzipLibrary(self):
+        lib = json.loads(open("library.json", "r").read())
+        library_path = library.find_library_path([lib[key] for key in lib])
+        if not os.path.isdir(library_path + "\\CH-X"): # TODO: allow for Unix paths
+            os.mkdir(library_path + "\\CH-X")
+        with py7zr.SevenZipFile("receive_songs.7z", "r") as archive:
+            archive.extractall(library_path + "\\CH-X")
+        os.remove("ext_lib.json")
+        os.remove("song_list_dic.json")
+        os.remove("send_songs.7z")
+        os.remove("receive_songs.7z")
+        print("Extraction complete.")
+        self.factory.emitter.run("extraction-complete")
+
+
+    def sendSongList(self, song_list):
+        self.transport.write("{}\r\n\r\n".format(json.dumps(song_list)).encode("utf-8"))
+        self.finishedReceiving = False
+        self.state = "receiving-songs"
+
     def sendSongs(self):
         songs_list = json.loads(open("song_list_dic.json", "r", encoding="utf-8").read())
-        print(songs_list["list"])
 
         print("Creating archive...")
         with py7zr.SevenZipFile("send_songs.7z", "w") as archive:
@@ -30,7 +49,8 @@ class Test(Protocol):
         send_file = open("send_songs.7z", "rb").read()
         self.transport.write(send_file)
         self.transport.write("\r\n\r\n".encode("utf-8"))
-        self.state = "receiving-songs"
+        #self.state = "receiving-songs"
+        self.unzipLibrary()
 
     def compareLibs(self):
         self.factory.emitter.run("comparing")
@@ -56,7 +76,6 @@ class Test(Protocol):
         self.transport.write(self.factory.file_to_send)
         self.transport.write("\r\n\r\n".encode("utf-8"))
         self.state = "validating"
-        #self.transport.loseConnection()
 
     def dataReceived(self, data):
         self.factory.emitter.run("data-received")
@@ -95,11 +114,24 @@ class Test(Protocol):
                 song_list_dic.close()
                 #self.state = "" # TODO: change
                 self.factory.emitter.run("server-received-list")
-                self.sendSongs()
             else:
                 song_list_dic = open("song_list_dic.json", "ab")
                 song_list_dic.write(data)
                 song_list_dic.close()
+        elif self.state == "receiving-songs":
+            save_file = open("receive_songs.7z", "ab")
+            save_file.write(data)
+            save_file.close()
+            try:
+                test_file = py7zr.SevenZipFile("receive_songs.7z", "r")
+                test_file.close()
+            except py7zr.exceptions.Bad7zFile:
+                print("Receiving song archive...")
+            else:
+                self.finishedReceiving = True
+            finally:
+                if self.finishedReceiving:
+                    self.sendSongs()
 
     def connectionLost(self, reason):
         self.factory.emitter.run("terminated")
@@ -111,6 +143,11 @@ class TestFactory(Factory):
     def __init__(self, f):
         self.emitter = Signaler()
         self.file_to_send = f
+
+    def buildProtocol(self, address):
+        proto = Factory.buildProtocol(self, address)
+        self.connectedProtocol = proto
+        return proto
 
 ############################################################
 

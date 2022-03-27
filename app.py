@@ -111,13 +111,16 @@ class Node:
 class Window(QtWidgets.QMainWindow):
     download_signal = QtCore.pyqtSignal()
 
-    # TODO: refactor to handle full song paths 
+    # TODO: refactor to handle full song paths
     def displaySongs(self):
         loc_lib = json.loads(open("library.json", "r").read())
         ext_lib = json.loads(open("ext_lib.json", "r").read())
+
+        common_path = library.find_library_path([ext_lib[key] for key in ext_lib])
+
         compare = library.compare_hash_libs(loc_lib, ext_lib)
         for key in compare[2]:
-            self.root.insert(compare[2][key])
+            self.root.insert(compare[2][key][len(common_path)+1:])
 
         for item in self.root.children:
             self.createNode(item, self.tree)

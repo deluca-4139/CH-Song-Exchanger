@@ -26,7 +26,7 @@ With that out of the way, let's get to rockin'!
 
 ## Installation
 
-If you have Python installed, running CH-X is as simple as `clone`ing this repository and running
+If you have Python installed, running CH-X is as simple as `clone`ing or downloading/extracing this repository and running
 
 ```
 py .\app.py

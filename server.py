@@ -48,9 +48,7 @@ class Server(Protocol):
 
         send_file = open("send_songs.7z", "rb").read()
         self.transport.write(send_file)
-        self.transport.write("\r\n\r\n".encode("utf-8"))
-        #self.state = "receiving-songs"
-        self.unzipLibrary()
+        self.state = "waiting-for-confirmation"
 
     def compareLibs(self):
         self.factory.emitter.run("comparing")
@@ -132,6 +130,8 @@ class Server(Protocol):
             finally:
                 if self.finishedReceiving:
                     self.sendSongs()
+        elif self.state == "waiting-for-confirmation":
+            self.unzipLibrary()
 
     def connectionLost(self, reason):
         self.factory.emitter.run("terminated")

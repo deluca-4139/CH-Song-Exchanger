@@ -50,7 +50,6 @@ class Client(Protocol):
 
         send_file = open("send_songs.7z", "rb").read()
         self.transport.write(send_file)
-        self.transport.write("\r\n\r\n".encode("utf-8"))
         self.state = "receiving-songs"
 
     def validateLibs(self, c):
@@ -134,6 +133,7 @@ class Client(Protocol):
                 self.finishedReceiving = True
             finally:
                 if self.finishedReceiving:
+                    self.transport.write("finished".encode("utf-8"))
                     self.unzipLibrary()
 
 

@@ -6,7 +6,7 @@ from twisted.internet.protocol import Factory, Protocol
 from twisted.internet.endpoints import TCP4ServerEndpoint, TCP4ClientEndpoint, connectProtocol
 from twisted.internet import reactor
 
-import library, test_server, test_client
+import library, server, client
 
 class ParseWorker(QtCore.QObject):
     finished = QtCore.pyqtSignal()
@@ -26,12 +26,12 @@ class ServerWorker(QtCore.QObject):
     communicator = QtCore.pyqtSignal(str)
 
     def sendDownload(self, song_list):
-        reactor.callFromThread(test_server.Test.sendSongList, self.server_factory.connectedProtocol, song_list)
+        reactor.callFromThread(server.Server.sendSongList, self.server_factory.connectedProtocol, song_list)
 
     def run(self):
         send_file = open("library.json", "rb").read()
         endpoint = TCP4ServerEndpoint(reactor, 8420)
-        self.server_factory = test_server.TestFactory(send_file)
+        self.server_factory = server.ServerFactory(send_file)
         endpoint.listen(self.server_factory)
         self.server_factory.emitter.signal.connect(lambda x: self.communicator.emit(x))
         reactor.run(installSignalHandlers=False)
@@ -44,11 +44,11 @@ class ClientWorker(QtCore.QObject):
         self.ip = i
 
     def sendDownload(self, song_list):
-        reactor.callFromThread(test_client.TestServ.sendSongList, self.client, song_list)
+        reactor.callFromThread(client.Client.sendSongList, self.client, song_list)
 
     def run(self):
         point = TCP4ClientEndpoint(reactor, self.ip, 8420)
-        self.client = test_client.TestServ()
+        self.client = client.Client()
         self.client.emitter.signal.connect(lambda x: self.communicator.emit(x))
         d = connectProtocol(point, self.client)
         reactor.run(installSignalHandlers=False)

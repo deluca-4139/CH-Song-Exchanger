@@ -14,7 +14,7 @@ class Signaler(QObject):
     def run(self, string):
         self.signal.emit(string)
 
-class TestServ(Protocol):
+class Client(Protocol):
     def __init__(self):
         self.emitter = Signaler()
 
@@ -150,7 +150,7 @@ def main():
         os.remove("local_lib.json")
 
     point = TCP4ClientEndpoint(reactor, sys.argv[1], 8420)
-    d = connectProtocol(point, TestServ())
+    d = connectProtocol(point, Client())
     reactor.run()
 
 ############################################################

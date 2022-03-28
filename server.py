@@ -14,7 +14,7 @@ class Signaler(QObject):
     def run(self, string):
         self.signal.emit(string)
 
-class Test(Protocol):
+class Server(Protocol):
     def unzipLibrary(self):
         lib = json.loads(open("library.json", "r").read())
         library_path = library.find_library_path([lib[key] for key in lib])
@@ -137,8 +137,8 @@ class Test(Protocol):
         self.factory.emitter.run("terminated")
         print("Connection to client terminated.")
 
-class TestFactory(Factory):
-    protocol = Test
+class ServerFactory(Factory):
+    protocol = Server
 
     def __init__(self, f):
         self.emitter = Signaler()
@@ -182,5 +182,5 @@ def main():
     print("Opening TCP server...")
     send_file = open("library.json", "rb").read()
     endpoint = TCP4ServerEndpoint(reactor, 8420)
-    endpoint.listen(TestFactory(send_file))
+    endpoint.listen(ServerFactory(send_file))
     reactor.run()

@@ -40,7 +40,7 @@ python app.py
 
 if you're on a Unix system (Mac/Linux). **(Note that at the moment, only Windows systems are supported. See TODOs below for more details.)** Make sure you've installed all of the dependencies listed below, either with `pip install` or `py -m pip install`.
 
-You can also download the latest build from the sidebar of the repository, which should contain an executable build with `pyinstaller`. Just extract the archive and run `CH-X.exe` or the equivalent binary.
+You can also download the latest build from the sidebar of the repository, which should contain an executable built with `pyinstaller`. Just extract the archive and run `CH-X.exe` or the equivalent binary.
 
 ### Dependencies:
 * `twisted`

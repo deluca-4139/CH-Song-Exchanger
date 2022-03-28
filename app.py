@@ -129,7 +129,16 @@ class Window(QtWidgets.QMainWindow):
         elif emit == "server-received-list":
             self.hasReceivedFileList = True
             self.download_signal.emit()
+        elif emit == "create-archive":
+            self.status_message.setText("Creating archive...")
+        elif emit == "sending-archive":
+            self.status_message.setText("Uploading songs...")
+        elif emit == "receiving-archive":
+            self.status_message.setText("Receiving songs...")
+        elif emit == "extracting":
+            self.status_message.setText("Extracting to library...")
         elif emit == "extraction-complete":
+            self.status_message.setText("Complete!")
             popup = QtWidgets.QMessageBox()
             popup.setWindowTitle("{} Message".format("Server" if self.runningServer else "Client"))
             popup.setText("Download Complete!")

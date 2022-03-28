@@ -16,6 +16,7 @@ class Signaler(QObject):
 
 class Server(Protocol):
     def unzipLibrary(self):
+        self.factory.emitter.run("extracting")
         lib = json.loads(open("library.json", "r").read())
         library_path = library.find_library_path([lib[key] for key in lib])
         if not os.path.isdir(library_path + "\\CH-X"): # TODO: allow for Unix paths
@@ -38,6 +39,7 @@ class Server(Protocol):
     def sendSongs(self):
         songs_list = json.loads(open("song_list_dic.json", "r", encoding="utf-8").read())
 
+        self.factory.emitter.run("create-archive")
         print("Creating archive...")
         with py7zr.SevenZipFile("send_songs.7z", "w") as archive:
             for song_path in songs_list["list"]:
@@ -47,6 +49,7 @@ class Server(Protocol):
                 archive.writeall(song_path, song_path[index+1:])
 
         send_file = open("send_songs.7z", "rb").read()
+        self.factory.emitter.run("sending-archive")
         self.transport.write(send_file)
         self.state = "waiting-for-confirmation"
 
@@ -76,7 +79,6 @@ class Server(Protocol):
         self.state = "validating"
 
     def dataReceived(self, data):
-        self.factory.emitter.run("data-received")
         print("Data received")
         if self.state == "validating":
             index = 0
@@ -95,6 +97,7 @@ class Server(Protocol):
                 ext_lib.close()
                 self.state = "receiving"
         elif self.state == "receiving":
+            self.factory.emitter.run("data-received")
             if data.decode('utf-8')[-4:] == '\r\n\r\n':
                 ext_lib = open("ext_lib.json", "a")
                 ext_lib.write(data.decode('utf-8')[:-4])
@@ -117,6 +120,7 @@ class Server(Protocol):
                 song_list_dic.write(data)
                 song_list_dic.close()
         elif self.state == "receiving-songs":
+            self.factory.emitter.run("receiving-archive")
             save_file = open("receive_songs.7z", "ab")
             save_file.write(data)
             save_file.close()

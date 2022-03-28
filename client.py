@@ -19,6 +19,7 @@ class Client(Protocol):
         self.emitter = Signaler()
 
     def unzipLibrary(self):
+        self.emitter.run("extracting")
         lib = json.loads(open("library.json", "r").read())
         library_path = library.find_library_path([lib[key] for key in lib])
         if not os.path.isdir(library_path + "\\CH-X"): # TODO: allow for Unix paths
@@ -40,6 +41,7 @@ class Client(Protocol):
     def sendSongs(self):
         songs_list = json.loads(open("song_list_dic.json", "r", encoding="utf-8").read())
 
+        self.emitter.run("create-archive")
         print("Creating archive...")
         with py7zr.SevenZipFile("send_songs.7z", "w") as archive:
             for song_path in songs_list["list"]:
@@ -49,6 +51,7 @@ class Client(Protocol):
                 archive.writeall(song_path, song_path[index+1:])
 
         send_file = open("send_songs.7z", "rb").read()
+        self.emitter.run("sending-archive")
         self.transport.write(send_file)
         self.state = "receiving-songs"
 
@@ -86,8 +89,8 @@ class Client(Protocol):
 
     def dataReceived(self, data):
         print("Data received.")
-        self.emitter.run("data-received")
         if self.state == "downloading":
+            self.emitter.run("data-received")
             if data.decode('utf-8')[-4:] == '\r\n\r\n':
                 print("End of file received.")
                 save_file = open("ext_lib.json", "a")
@@ -121,6 +124,7 @@ class Client(Protocol):
                 song_list_dic.write(data)
                 song_list_dic.close()
         elif self.state == "receiving-songs":
+            self.emitter.run("receiving-archive")
             save_file = open("receive_songs.7z", "ab")
             save_file.write(data)
             save_file.close()

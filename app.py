@@ -73,7 +73,7 @@ class Node:
         return (False, None)
 
     def insert(self, path):
-        path_split = path.split("\\" if platform.system() == "Windows" else "/") # TODO: allow Unix paths
+        path_split = path.split("\\" if (len(path.split("\\")) > len(path.split("/"))) else "/")
         if len(path_split) == 1:
             self.children.append(Node(path_split[0]))
         else:

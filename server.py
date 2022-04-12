@@ -21,7 +21,7 @@ class Server(Protocol):
         delimiter = "\\" if platform.system() == "Windows" else "/"
         lib = json.loads(open("library.json", "r").read())
         library_path = library.find_library_path([lib[key] for key in lib])
-        if not os.path.isdir(library_path + delimiter + "CH-X"): # TODO: allow for Unix paths
+        if not os.path.isdir(library_path + delimiter + "CH-X"):
             os.mkdir(library_path + delimiter + "CH-X")
         with py7zr.SevenZipFile("receive_songs.7z", "r") as archive:
             archive.extractall(library_path + delimiter + "CH-X")
@@ -48,7 +48,7 @@ class Server(Protocol):
             delimiter = "\\" if platform.system() == "Windows" else "/"
             for song_path in songs_list["list"]:
                 index = len(song_path) - 1
-                while song_path[index] != delimiter: # TODO: allow for Unix paths
+                while song_path[index] != delimiter:
                     index -= 1
                 archive.writeall(song_path, song_path[index+1:])
 

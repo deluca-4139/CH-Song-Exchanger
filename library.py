@@ -34,17 +34,21 @@ def compare_hash_libs(lib1, lib2):
 
     return (songs_in_common, in1not2, in2not1)
 
-# This function might assume that a user has
-# at least one song in their library...
+# Notes:
+# 1. this function might assume that a user 
+# has at least one song in their library
+# 2. the selected path is not the actual
+# location of song library if user only
+# has one folder within their library
 def find_library_path(song_list):
-    delimiter = "\\" if (len(song_list[0].split("\\")) > len(len(song_list[0].split("/")))) else "/"
+    delimiter = "\\" if (len(song_list[0].split("\\")) > len(song_list[0].split("/"))) else "/"
     pathFound = False
     index = 0
     test_path = song_list[0]
     while not pathFound:
         index += 1
         try:
-            while test_path[index] != delimiter: # TODO: allow for Unix paths
+            while test_path[index] != delimiter:
                 index += 1
         except IndexError:
             pathFound = True
@@ -52,6 +56,6 @@ def find_library_path(song_list):
             if test_path[:index] not in song:
                 pathFound = True
     index -= 1
-    while test_path[index] != delimiter: # TODO: allow for Unix paths
+    while test_path[index] != delimiter:
         index -=1
     return test_path[:index]

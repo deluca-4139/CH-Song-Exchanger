@@ -4,7 +4,7 @@ from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-import os, sys, json, py7zr
+import os, sys, json, platform, py7zr
 
 import library
 
@@ -20,17 +20,20 @@ class Client(Protocol):
 
     def unzipLibrary(self):
         self.emitter.run("extracting")
+
+        delimiter = "\\" if platform.system() == "Windows" else "/"
         lib = json.loads(open("library.json", "r").read())
         library_path = library.find_library_path([lib[key] for key in lib])
-        if not os.path.isdir(library_path + "\\CH-X"): # TODO: allow for Unix paths
-            os.mkdir(library_path + "\\CH-X")
+        if not os.path.isdir(library_path + delimiter + "CH-X"): # TODO: allow for Unix paths
+            os.mkdir(library_path + delimiter + "CH-X")
         with py7zr.SevenZipFile("receive_songs.7z", "r") as archive:
-            archive.extractall(library_path + "\\CH-X")
+            archive.extractall(library_path + delimiter + "CH-X")
         os.remove("ext_lib.json")
         os.remove("song_list_dic.json")
         os.remove("send_songs.7z")
         os.remove("receive_songs.7z")
         print("Extraction complete.")
+
         self.emitter.run("extraction-complete")
 
     def sendSongList(self, song_list):

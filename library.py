@@ -1,15 +1,15 @@
 import os
 import hashlib
+import platform
 
-# TODO: allow for both Unix and Win paths
 def parse_library_hash(path):
     songs_found = 0
     songs = {}
     for root, dirs, files in os.walk(path):
         for name in files:
-            song_entry = root[(len(path)+1):] # Unix path might need edit?
+            song_entry = root[(len(path)+1):]
             if name == "notes.chart" or name == "notes.mid":
-                chart_file = open((root + "\\" + name), "rb").read()
+                chart_file = open((root + ("\\" if platform.system() == "Windows" else "/") + name), "rb").read()
                 chart_hash = hashlib.md5(chart_file).hexdigest()
                 if chart_hash in songs:
                     print("Duplicate hash found for {}.".format(song_entry))
@@ -37,13 +37,14 @@ def compare_hash_libs(lib1, lib2):
 # This function might assume that a user has
 # at least one song in their library...
 def find_library_path(song_list):
+    delimiter = "\\" if (len(song_list[0].split("\\")) > len(len(song_list[0].split("/")))) else "/"
     pathFound = False
     index = 0
     test_path = song_list[0]
     while not pathFound:
         index += 1
         try:
-            while test_path[index] != "\\": # TODO: allow for Unix paths
+            while test_path[index] != delimiter: # TODO: allow for Unix paths
                 index += 1
         except IndexError:
             pathFound = True
@@ -51,6 +52,6 @@ def find_library_path(song_list):
             if test_path[:index] not in song:
                 pathFound = True
     index -= 1
-    while test_path[index] != "\\": # TODO: allow for Unix paths
+    while test_path[index] != delimiter: # TODO: allow for Unix paths
         index -=1
     return test_path[:index]

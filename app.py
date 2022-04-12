@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.Qt import Qt
-import sys, json, os
+import sys, json, os, platform
 
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet.endpoints import TCP4ServerEndpoint, TCP4ClientEndpoint, connectProtocol
@@ -73,7 +73,7 @@ class Node:
         return (False, None)
 
     def insert(self, path):
-        path_split = path.split("\\") # TODO: allow Unix paths
+        path_split = path.split("\\" if platform.system() == "Windows" else "/") # TODO: allow Unix paths
         if len(path_split) == 1:
             self.children.append(Node(path_split[0]))
         else:

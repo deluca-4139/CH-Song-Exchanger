@@ -4,7 +4,7 @@ from twisted.internet import reactor
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
-import os, sys, json, py7zr
+import os, sys, json, platform, py7zr
 
 import library
 
@@ -17,17 +17,20 @@ class Signaler(QObject):
 class Server(Protocol):
     def unzipLibrary(self):
         self.factory.emitter.run("extracting")
+
+        delimiter = "\\" if platform.system() == "Windows" else "/"
         lib = json.loads(open("library.json", "r").read())
         library_path = library.find_library_path([lib[key] for key in lib])
-        if not os.path.isdir(library_path + "\\CH-X"): # TODO: allow for Unix paths
-            os.mkdir(library_path + "\\CH-X")
+        if not os.path.isdir(library_path + delimiter + "CH-X"): # TODO: allow for Unix paths
+            os.mkdir(library_path + delimiter + "CH-X")
         with py7zr.SevenZipFile("receive_songs.7z", "r") as archive:
-            archive.extractall(library_path + "\\CH-X")
+            archive.extractall(library_path + delimiter + "CH-X")
         os.remove("ext_lib.json")
         os.remove("song_list_dic.json")
         os.remove("send_songs.7z")
         os.remove("receive_songs.7z")
         print("Extraction complete.")
+
         self.factory.emitter.run("extraction-complete")
 
 
@@ -42,9 +45,10 @@ class Server(Protocol):
         self.factory.emitter.run("create-archive")
         print("Creating archive...")
         with py7zr.SevenZipFile("send_songs.7z", "w") as archive:
+            delimiter = "\\" if platform.system() == "Windows" else "/"
             for song_path in songs_list["list"]:
                 index = len(song_path) - 1
-                while song_path[index] != "\\": # TODO: allow for Unix paths
+                while song_path[index] != delimiter: # TODO: allow for Unix paths
                     index -= 1
                 archive.writeall(song_path, song_path[index+1:])
 

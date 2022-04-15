@@ -1,6 +1,4 @@
-import os
-import hashlib
-import platform
+import os, hashlib, platform
 
 def parse_library_hash(path):
     songs_found = 0

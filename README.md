@@ -38,9 +38,9 @@ if you're on a Windows system, or
 python app.py
 ```
 
-if you're on a Unix system (Mac/Linux). **(Note that at the moment, only Windows systems are supported. See TODOs below for more details.)** Make sure you've installed all of the dependencies listed below, either with `pip install` or `py -m pip install`.
+if you're on a Unix system (Mac/Linux). **(Support for Mac/Linux systems is currently in testing. For those on those systems, download the executables from the latest pre-release!)** Make sure you've installed all of the dependencies listed below, either with `pip install` or `py -m pip install`.
 
-You can also download the latest build from the sidebar of the repository, which should contain an executable built with `pyinstaller`. Just extract the archive and run `CH-X.exe` or the equivalent binary.
+You can also download the latest build from the sidebar of the repository, which should contain an executable built with `pyinstaller`. Just download and run the executable/binary for your relevant system.
 
 ### Dependencies:
 * `twisted`
@@ -86,7 +86,7 @@ Either open an issue within GitHub, or message me on Discord. Please try to be a
 
 #### TODOs
 
-* Implement Unix path support. At the moment, CH-X only uses Windows pathing (i.e. backslashes instead of forward), so only Windows systems are supported.
+* ~~Implement Unix path support. At the moment, CH-X only uses Windows pathing (i.e. backslashes instead of forward), so only Windows systems are supported.~~ **Support for Mac/Linux systems has been implemented and is currently in alpha testing. Please download the latest pre-release if you want to help test it!**
 * Allow for custom port usage.
 * Allow for archive-only usage; this would make it so that if you didn't have a super stable internet connection, you could tick a box and have CH-X zip up all the songs your friend wanted, and then upload the archive yourself to an external file storage service.
 * Continue to revamp UI.

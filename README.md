@@ -93,7 +93,7 @@ Either open an issue within GitHub, or message me on Discord. Please try to be a
 
 ## Contact
 
-The easiest way to reach me is on Discord at `Nicole 🌼#4092`. I change my username somewhat frequently though, so if I haven't updated this page with my new username, you should be able to find me through the Clone Hero Discord server. You're welcome to contact me with bug reports, questions about usage or functionality, suggestions for new features, or just to let me know what you think of the program!
+The easiest way to reach me is on Discord at `Rosemary 🌿#4092`. I change my username somewhat frequently though, so if I haven't updated this page with my new username, you should be able to find me through the Clone Hero Discord server. You're welcome to contact me with bug reports, questions about usage or functionality, suggestions for new features, or just to let me know what you think of the program!
 
 
 Thanks for reading, and long live rhythm gaming! 🤘🏻
